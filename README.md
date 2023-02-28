@@ -83,10 +83,10 @@ Server deals with the device states, when a device is triggered (either by serve
 
 ### THREAD 2+: 
 	Client Messages:
-		- client <id> status_change Device Trigger
-			send status_change command to client
-		- <id> <state> // Status Notice 
-			print out status
+		- client <id> state_change Device Trigger
+			send state_change command to client
+		- <id> <state> // State Notice 
+			print out state
 
 
 
