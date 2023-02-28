@@ -36,7 +36,7 @@
 	Else if request == state_error 
 		Client Disconnects
 
-        - simulate
+        - simulate // simulates 35 devices connecting to the server and requesting state change
         - quit
 
 ### THREAD 2: 
