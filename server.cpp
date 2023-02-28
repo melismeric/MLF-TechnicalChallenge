@@ -24,7 +24,6 @@ using namespace std;
 int main(int argc, char const* argv[])
 {
 	Server s(PORT);
-    s.start();
-   
+    s.start();   
 	return 0;
 }

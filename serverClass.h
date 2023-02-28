@@ -30,20 +30,22 @@ class Server {
         struct sockaddr_in address;
         int opt = 1;
         int addrlen = sizeof(address);
+        std::vector<std::thread> threads;
 
-        void listen_user();
-        void commandToDevice(int id, std::string req);
-        Client* GetClientById(std::vector<Client*>& objects, int id);
-        Client* GetClientBySocket(std::vector<Client*>& objects, int socket);
-        Client* CreateClientIfNotExist(int id, int socket, sockaddr_in client_address, std::vector<Client*>& objects);
-        void removeClientUsingId(std::vector<Client*>& objects, int id);
-        void removeClientUsingSocket(std::vector<Client*>& objects, int socket);
-        void handleClientInput(std::string cmd, int socket, sockaddr_in client_address);
-        void handle_client(int client_socket, sockaddr_in client_address, std::vector<Client*>& active_clients);
-        void handle_user_input(std::string input);
+        void start(); 
+        void changeState(int id, bool error);
+        void saveState(int id, int status, State state);
+        
+        void listActiveClients();
+
+        void listenUserInput();
         void stop();
-        void start();
-        void test();   
+        void disconnect();
+        void handleClient(int client_socket, sockaddr_in client_address, vector<Client*>& active_clients);
+        void handleClientInput(string cmd, int socket, sockaddr_in client_address);
+
+
+
 
     private:
         int new_socket;

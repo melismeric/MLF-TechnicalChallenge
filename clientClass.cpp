@@ -13,53 +13,23 @@
 
 using namespace std;
 
+//Helper function
 
-// for debug purposes make the states readable
-void Client::printState() { 
-    switch (state) {
-        case 0:
-            cout << "Idle" << endl;
-            break;
-        case 1:
-            cout << "Onboarding" << endl;
-            break;
-        case 2:
-            cout << "Engaging" << endl;
-            break;
-        case 3:
-            cout << "Offboarding" << endl;
-            break;
-        case 4:
-            cout << "Error" << endl;
-            break;
-    }
-}
-
-string Client::getState(){
-    if( state == IDLE) {
-        return "IDLE";
-    } else if ( state == ONBOARDING) {
-        return "ONBOARDING";
-    } else if ( state == ENGAGING) {
-        return "ENGAGING";
-    } else if ( state == OFFBOARDING) {
-        return "OFFBOARDING";
+State stringToState(string i){
+    if(i == "0") {
+        return IDLE;
+    } else if(i == "1") {
+        return ONBOARDING;
+    } else if(i == "2") {
+        return ENGAGING;
+    } else if(i == "3") {
+        return OFFBOARDING;
     } else {
-        return "ERROR";
+        return ERROR;
     }
 }
 
-void Client::setStateByNum(int stateNum){
-    if(stateNum == 0){
-        setState(IDLE);
-    } else if (stateNum == 1){
-        setState(ONBOARDING);
-    } else if (stateNum == 2){
-        setState(ENGAGING);
-    } else if (stateNum == 3){
-        setState(OFFBOARDING);
-    }
-}
+//
 
 bool Client::connectToServer() {
     // Create socket
@@ -84,7 +54,7 @@ bool Client::connectToServer() {
         cerr << "Connection failed." << endl;
         return false;
     } else {
-        string m = "client " + to_string(id) + " created";
+        string m = to_string(id) + " connect";
         send(m_socket, m.c_str(), m.length(), 0);
     }
     return true;
@@ -92,18 +62,20 @@ bool Client::connectToServer() {
 
 void Client::disconnect(){
     close(m_socket);
-    cout << "Client disconnected" << endl;
+    cout << "Device" + to_string(id) + "disconnected" << endl;
 }
 
-void Client::statusNotice(){
-    string notice = to_string(id) + "," + to_string(state);
-    send(m_socket, notice.c_str(), notice.length(), 0);
-}
-
-void Client::deviceTrigger(){
-    string t = "Client " + to_string(id) + " trigger";
-    cout << ">>>" + t << endl;
+void Client::changeStateRequest(bool err){
+    string t = to_string(id) + " state_change";
+    if (err) t = to_string(id) + " state_error";
     send(m_socket, t.c_str(), t.length(), 0);
+}
+
+void Client::stateNotice(){
+    //<id> <status> <state>
+    string notice = to_string(id) + " " + to_string(status) + " " + to_string(curr_state);
+    cout << notice << endl;
+    send(getSocket(), notice.c_str(), notice.length(), 0);
 }
 
 void Client::receiveMessage() {
@@ -111,41 +83,32 @@ void Client::receiveMessage() {
         char buffer[BUFFER_SIZE] = {0};
         int valread = read(m_socket, buffer, 1024);
         string s = buffer;
-        if (valread > 0 && s.find("status_change") != string::npos){
-            state_change(false); //change status without error;
+        
+        istringstream iss(s);
+        vector<string> words;
+        string word;
+        // putting input words into a list to seperate them
+        while (iss >> word) {        
+            words.push_back(word);
+        }
 
-        } else if (valread > 0 && s.find("status_error") != string::npos){
-            state_change(true); //change status  error;
-
-        } else if (valread > 0 && s.find("status_check") != string::npos){
-            statusNotice();
-
-        } else {
+        if (valread > 0 && s.find("state_check") != string::npos){
+            stateNotice();
+        } else if (words.size() == 3){
+            if (valread > 0 && stoi(words[1]) == 0){
+                cout << "State changed successfully." << endl;
+                curr_state = stringToState(words[2]);
+            } else if (valread > 0 && stoi(words[1]) == 1){
+                cout << "State change failed or error happened" << endl;
+                curr_state = ERROR;
+                disconnect();
+            }
+        }else {
             cout << "Disconnected from server" << endl;
+            disconnect();
             break;
         }
-            memset(buffer, 0, BUFFER_SIZE);
+        
+        memset(buffer, 0, BUFFER_SIZE);
     }
-}
-
-void Client::state_change(bool error) {
-    
-    if (error) {
-        cout << " state changing to error" << endl;
-        state = ERROR;
-    } else if (state == IDLE) {
-        cout << "Idle state changing to onboarding" << endl;
-        state = ONBOARDING;
-    } else if (state == ONBOARDING) {
-        cout << "Onboarding state changing to engaging" << endl;
-        state = ENGAGING;      
-    } else if (state == ENGAGING) {
-        cout << "Engaging state changing to offboarding" << endl;
-        state = OFFBOARDING;
-    } else if (state == OFFBOARDING) {
-        cout << "Offboarding state changing to idle" << endl;
-        state = IDLE;
-    }
-    // TODO: What happens if state is ERROR
-
 }

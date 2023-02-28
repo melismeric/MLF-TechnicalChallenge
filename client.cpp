@@ -15,7 +15,7 @@ using namespace std;
 // function to search for an object in a vector of object pointers based on its id
 Client* GetClientById(vector<Client*>& objects, int id) {
     for (int i = 0; i != objects.size(); ++i) {
-        if (objects[i]->getId() == id) { // replace getId() with the getter function for your object's id
+        if (objects[i]->id == id) { // replace getId() with the getter function for your object's id
             return objects[i];
         }
     }
@@ -26,7 +26,7 @@ Client* CreateClientIfNotExist(vector<Client*>& objects, int id, string address,
     Client* c = GetClientById(objects, id);
                 
     if (c != nullptr) {
-        c->deviceTrigger();
+        //c->deviceTrigger();
         return c;
     }
     else {
@@ -53,8 +53,8 @@ int main() {
     string address = "127.0.0.1";
     int port = 8080;
     
-    cout << "client <id> <request> OR simulate OR quit" << endl;
-    cout << "Requests can be: status_check, status_change" << endl;
+    cout << "<id> <request> OR simulate OR quit" << endl;
+    cout << "Requests can be: connect, state_change, disconnect, state_error" << endl;
 
     //clientList
     vector<Client*> clients;
@@ -79,33 +79,38 @@ int main() {
         } else if (message == "simulate") {
             cout << "Simulation" << endl;
             // TODO simulate 35 clients
-            int maxClients = 3;
+            int maxClients = 35;
             for(int i=0 ; i < maxClients ; i++){
                 sleep_for(nanoseconds(10));
                 sleep_until(system_clock::now() + seconds(1));
 
                 Client* c = CreateClientIfNotExist(clients, i, address, port);
-            }
-
-            for(int i=0 ; i < maxClients ; i++){
-                sleep_for(nanoseconds(10));
+                
+                sleep_for(nanoseconds(15));
                 sleep_until(system_clock::now() + seconds(1));
-
-                Client* c = GetClientById(clients, i);
-
-                c->deviceTrigger();
+                c->changeStateRequest(false);
             }
-        } else if (words[0] == "client" && isdigit(message[7])) { // device trigger
-            int inputId = static_cast<int>(message[7]) - 48;
 
-            if (words[2] == "disconnect") {
+
+        } else if (isdigit(message[0])) { // device trigger
+            int inputId = stoi(words[0]);
+
+            if (words[1] == "disconnect") {
                 Client *c = GetClientById(clients, inputId);
                 if(c != nullptr){
                     c->disconnect();
                 }
-            } else if (words[2] == "" || words[2] == "trigger"){
+            } else if (words[1] == "connect"){
                 Client* c = CreateClientIfNotExist(clients, inputId, address, port);
-                c->deviceTrigger();
+                cout << "connect" << endl;
+            } else if (words[1] == "state_change"){
+                Client* c = CreateClientIfNotExist(clients, inputId, address, port);
+                cout << "state_change" << endl;
+                c->changeStateRequest(false);
+            } else if (words[1] == "state_error"){
+                Client* c = CreateClientIfNotExist(clients, inputId, address, port);
+                cout << "state_change_errorr" << endl;
+                c->changeStateRequest(true);
             }
         
         } else {

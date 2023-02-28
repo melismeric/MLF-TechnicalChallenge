@@ -25,23 +25,12 @@
 #define MAX_CLIENTS 35
 
 using namespace std;   
-      
-void Server::listen_user() {
-    string input;
-    while (true) {
-        // Read user input from stdin
-        input = ""; //clean input
-        getline(std::cin, input);
-        std::cout << "user command: " << input << std::endl;
-        handle_user_input(input);
-        
-    }
-}
 
+// Helper functions for active clients list
 // function to search for an object in a vector of object pointers based on its id
-Client* Server::GetClientById(vector<Client*>& objects, int id) {
+Client* GetClientById(vector<Client*>& objects, int id) {
     for (int i = 0; i != objects.size(); ++i) {
-        if (objects[i]->getId() == id) { // replace getId() with the getter function for your object's id
+        if (objects[i]->id == id) { // replace getId() with the getter function for your object's id
             return objects[i];
         }
     }
@@ -49,7 +38,7 @@ Client* Server::GetClientById(vector<Client*>& objects, int id) {
 }
 
 // function to search for an object in a vector of object pointers based on its id
-Client* Server::GetClientBySocket(vector<Client*>& objects, int socket) {
+Client* GetClientBySocket(vector<Client*>& objects, int socket) {
     for (int i = 0; i != objects.size(); ++i) {
         if (objects[i]->getSocket() == socket) { // replace getId() with the getter function for your object's id
             return objects[i];
@@ -58,50 +47,21 @@ Client* Server::GetClientBySocket(vector<Client*>& objects, int socket) {
     return nullptr; // return nullptr if object not found
 }
 
-void Server::commandToDevice(int id, string req) { // command status change or check to a specific device
-// if id exist
-// else invalid
-    Client* c = GetClientById(active_clients, id);
-    if(c != nullptr){
-        // Format should be: client <id> <request>
-        string s = "client " + to_string(id) + " status_" + req;
-        const int length = s.length();
-        char* cmd = new char[length + 1];
-        strcpy(cmd, s.c_str());
-        
-        write(c->getSocket(), cmd, strlen(cmd));   
-        delete[] cmd;
-
-    } else {
-        cout << "Error: Client does not exits!" << endl;
-    }
-
-}
-
-Client* Server::CreateClientIfNotExist(int id, int socket, sockaddr_in client_address, vector<Client*>& objects){
+Client* AddClientIfNotExist(int id, int socket ,vector<Client*>& objects){
     Client* c = GetClientById(objects, id);
                 
     if (c != nullptr) {
         return c;
     } else {
-        cout << "New client added to list" << endl;
+        cout << "New client " + to_string(id) + " added to list" << endl;
         // if client does not exist 
         Client* client = new Client(socket, id);
-        active_clients.push_back(client);
+        objects.push_back(client);
         return client;
     }
 }
 
-void Server::removeClientUsingId(vector<Client*>& objects, int id){
-    Client *c = GetClientById(objects, id);
-    // remove client socket from list of active clients
-    objects.erase(
-        remove(objects.begin(), objects.end(), c),
-        objects.end()
-    );
-}
-
-void Server::removeClientUsingSocket(vector<Client*>& objects, int socket){
+void removeClientUsingSocket(vector<Client*>& objects, int socket){
     Client *c = GetClientBySocket(objects, socket);
     // remove client socket from list of active clients
     if (c != nullptr) {
@@ -111,6 +71,119 @@ void Server::removeClientUsingSocket(vector<Client*>& objects, int socket){
         );
     }
 
+}
+
+bool is_number(const std::string& s)
+{
+    return !s.empty() && std::find_if(s.begin(), 
+        s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
+}
+
+string stateToString(State state){
+    if(state == IDLE) {
+        return "IDLE";
+    } else if(state == ONBOARDING) {
+        return "ONBOARDING";
+    } else if(state == ENGAGING) {
+        return "ENGAGING";
+    } else if(state == OFFBOARDING) {
+        return "OFFBOARDING";
+    } else {
+        return "ERROR";
+    }
+}
+
+//
+
+void Server::listActiveClients(){
+    cout << ">> Listing active clients: " << endl;
+    for (auto& c : active_clients) {
+        cout << "Id: " << c->id << " State: " << stateToString(c->getState()) << endl;
+    }
+}
+
+void Server::listenUserInput(){
+    string input;
+    while (true) {
+        
+        // Read user input from stdin
+        input = ""; //clean input
+        getline(std::cin, input);
+
+        istringstream iss(input);
+        vector<string> words;
+        string word;
+        // putting input words into a list to seperate them
+        while (iss >> word) {        
+            words.push_back(word);
+        }
+
+
+        if(input == "quit"){
+            break;
+        } else if (input == "list") {
+            listActiveClients();
+        } else if (input == "random state_change") {
+            int i = rand() % active_clients.size();
+            changeState(active_clients[i]->id, false);
+
+        } else if (input == "random state_check") {
+            int i = rand() % active_clients.size();
+            int id = active_clients[i]->id;
+
+            string s = to_string(id) + " state_check";
+            const int length = s.length();
+            char* cmd = new char[length + 1];
+            strcpy(cmd, s.c_str());
+            
+            write(active_clients[i]->getSocket(), cmd, strlen(cmd));   
+            delete[] cmd;
+        } else if (input.find("state_check") != string::npos) {
+            // send status check to devices
+            
+            int id = stoi(words[0]);
+            Client* c = GetClientById(active_clients, id);
+            if(c != nullptr){
+                // Format should be: <id> <request>
+                string s = to_string(id) + " state_check";
+                const int length = s.length();
+                char* cmd = new char[length + 1];
+                strcpy(cmd, s.c_str());
+                
+                write(c->getSocket(), cmd, strlen(cmd));   
+                delete[] cmd;
+
+            } else {
+                cout << "Error: Client does not exits!" << endl;
+            }
+            
+        } else if (input.find("state_change") != string::npos) {
+
+            // send status check to devices
+            int id = stoi(words[0]);
+            Client* c = GetClientById(active_clients, id);
+            if(c != nullptr){
+                cout << id << " requires state change.";
+                changeState(id, false);
+            } else {
+                cout << "Error: Client does not exits!" << endl;
+            }
+        } else if (input.find("state_error") != string::npos) {
+
+            // send status check to devices
+            int id = stoi(words[0]);
+            Client* c = GetClientById(active_clients, id);
+            if(c != nullptr){
+                cout << id << " requires state change.";
+                changeState(id, true);
+            } else {
+                cout << "Error: Client does not exits!" << endl;
+            }
+        }
+        
+        
+    }
+    disconnect();
 }
 
 void Server::handleClientInput(string cmd, int socket, sockaddr_in client_address){
@@ -123,109 +196,118 @@ void Server::handleClientInput(string cmd, int socket, sockaddr_in client_addres
     while (iss >> word) {        
         words.push_back(word);
     }
+  
+    //<id> <req> OR <id> <status> <state>
+    if (is_number(words[0])) {
 
-    if(words[0] == "client" ){//if cmd == client <id> <req> Option 1: trigger notice
-        int id = stoi(words[1]);
-        Client *c = CreateClientIfNotExist(id, socket, client_address, active_clients);
-        commandToDevice(id, "change"); 
-    } else if(cmd.find(",") != string::npos){  //if <id>,<state> Otion 2: status notice
-        int currId = stoi(cmd.substr(0, cmd.find(',')));
-        int currState = stoi(cmd.substr(cmd.find(',') + 1));
+        if(is_number(words[1])) {
+            if (stoi(words[1]) == 0) {
+                cout << "Device State Notice:" << endl;
+                cout << "Device " + words[0] + " state: " + words[2] << endl;
+            } else if (stoi(words[1]) == 1) {
+                cout << "Device Status is Error:" << endl;
+                cout << "Device " + words[0] + " state: " + words[2] << endl;
+            }
 
-        Client *c= GetClientById(active_clients, currId);
-        c->setStateByNum(currState);
-        cout << "Device id: "<< currId << " State: " << c->getState() << endl;
+        } else {
+            if (words[1] == "connect") {
+                cout << words[0] << " requires connection.";
+                int inputId = stoi(words[0]);
+                Client *c = AddClientIfNotExist(inputId, socket ,active_clients);
+                changeState(inputId, false);
+            } else if (words[1] == "state_change") {
+                int inputId = stoi(words[0]);
+                cout << words[0] << " requires state change.";
+                changeState(inputId, false);
+            } else if (words[1] == "state_error") {
+                int inputId = stoi(words[0]);
+                cout << words[0] << " requires state change with error.";
+                changeState(inputId, true);
+            } 
+        }
         
-        // state notice is idle
-        if (currState == 0) {removeClientUsingId(active_clients, currId);}
-
-    } else { //else: invalid client input
-        cout << "Invalid Client request/notice" << endl;
-    }     
+    } else {
+        cout << "Invalid message from device" << endl;
+    }
+  
 }
 
-void Server::handle_client(int client_socket, sockaddr_in client_address, vector<Client*>& active_clients) {
+void Server::handleClient(int client_socket, sockaddr_in client_address, vector<Client*>& active_clients) {
     // add new client to the active clients list
     // Create a new client object and add it to the list of clients
     
-    cout << "New client connected: " << inet_ntoa(client_address.sin_addr) << ":" << ntohs(client_address.sin_port) << endl;
+    cout << "New device connected: "<< endl;
 
     // handle the client request here
     char buffer[BUFFER_SIZE] = {0};
     memset(buffer, 0, BUFFER_SIZE);
-    while(true){
+    while (true) {
+        
+        // Check for shutdown command from user input
+        if (s_shutdown) {
+            std::cout << "Inside handle_client Shutting down server\n";
+            running = false;
+            disconnect();
+            break;
+        }
         int message_size = read(client_socket, buffer, sizeof(buffer));
 
         if (message_size <= 0) {
             //client disconnected -> TODO: state_change?
-            cout << " DISCONNECTING: "<< inet_ntoa(client_address.sin_addr) << ":" << ntohs(client_address.sin_port) << endl;
+            cout << "Device disconnecting: "<< inet_ntoa(client_address.sin_addr) << ":" << ntohs(client_address.sin_port) << endl;
             removeClientUsingSocket(active_clients, client_socket);
             break;
         } 
-        cout << "Received message from client: " << buffer << endl;
+        
         // Message from client should be serialized format
         string s = buffer;
         handleClientInput(s, client_socket, client_address);
         memset(buffer, 0, BUFFER_SIZE);
     }
-    
-
-    cout << "Client disconnected, socket id: " << client_socket << endl;
-    removeClientUsingSocket(active_clients, client_socket);
 
     // close the client socket
     close(client_socket);
 }
 
-void Server::handle_user_input(string input){
-    transform(input.begin(), input.end(), input.begin(), ::tolower);
-
-    istringstream iss(input); //Todo: make all input lower case
-    vector<string> words;
-    string word;
-    // putting input words into a list to seperate them
-    while (iss >> word) {        
-        words.push_back(word);
-    }
-
-    if(words[0] == "client" ){//if input == client <id> <req> -> send request to client
-        cout << "Send command to client " << words[1] << endl;
-
-        int id = stoi(words[1]);
-        Client* c = GetClientById(active_clients, id);
-        if(c != nullptr) {  // check if client exist
-            if(words[2].find("status_check") != string::npos){ // status check expected status notice from client
-                cout << ">>> Sending status_check command to Client " << id << endl;
-                commandToDevice(id, "check");
-            } else if (words[2].find("status_change") != string::npos) {  // status chnage 
-                cout << ">>> Sending status_change command to Client " << id << endl;
-                commandToDevice(id, "change");
-            } else if (words[2].find("status_error") != string::npos) {  // status chnage 
-                cout << ">>> Sending status_change_error command to Client " << id << endl;
-                commandToDevice(id, "error");
-            }
-        } else {
-            cout << "Client " << id << " does not exist in the active_clients list." << endl;
-        }
-
-    } else if(input == "list clients"){ // Debug
-        cout << ">> Listing active clients: " << endl;
-        for (auto& c : active_clients) {
-            cout << "Id: " << c->getId() << " Socket: " << c->getSocket() << " State: " << c->getState() << endl;
-        }
-    } else if(input == "quit") {
-        cout << "quit!!" << endl;
-        stop();
-    } else {
-        cout << "User said: " << endl; 
-    }
-
-    input = ""; //clean input
+void Server::changeState(int id, bool error){
+    Client *c = GetClientById(active_clients, id);
+  
+    if (error) {
+        cout << " state changing to error" << endl;
+        saveState(id,error, ERROR); // status should be fail
+        removeClientUsingSocket(active_clients, c->getSocket());
+    } else if (c->getState() == 0) {
+        cout << "Idle state changing to onboarding" << endl;
+        saveState(id,error, ONBOARDING);
+    } else if (c->getState()  == 1) {
+        cout << "Onboarding state changing to engaging" << endl;
+        saveState(id,error, ENGAGING);
+    } else if (c->getState() == 2) {
+        cout << "Engaging state changing to offboarding" << endl;
+        saveState(id,error, OFFBOARDING);
+    } else if (c->getState() == 3) {
+        cout << "Offboarding state changing to idle" << endl;
+        saveState(id,error, IDLE);
+        removeClientUsingSocket(active_clients, c->getSocket());
+    }  
 }
 
-void Server::start(){
-    std::vector<std::thread> threads;
+void Server::saveState(int id, int status, State state){
+    Client *c = GetClientById(active_clients, id);
+    c->setState(state);
+    
+    string s = to_string(id) + " " + to_string(status) + " " + to_string(state);
 
+    const int length = s.length();
+    char* cmd = new char[length + 1];
+    strcpy(cmd, s.c_str());
+    
+
+    write(c->getSocket(), cmd, strlen(cmd));   
+    delete[] cmd;
+}
+      
+void Server::start(){
     // Creating socket file descriptor
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         perror("socket failed");
@@ -255,11 +337,23 @@ void Server::start(){
         exit(EXIT_FAILURE);
     }
 
-    std::cout << "Server listening on port " << PORT << std::endl;
+    cout << "Server listening on port " << PORT << endl;
+    cout << "Command List:" << endl;
+    cout << "   list: list active devices" << endl;
+    cout << "   quit: Close server" << endl;
+    cout << "   <id> <state_check>: Check device state by id." << endl;
+    cout << "   <id> <state_change>: Change device state by id." << endl;
+    cout << "   <id> <state_error>: Send error" << endl;
+
 
     // Server is now running
     running = true;
 
+    //threads.push_back(std::thread(&Server::listen_user, this));
+    std::thread user_thread(&Server::listenUserInput, this);
+    user_thread.detach();
+
+    
     // accept incoming client connections and handle them in separate threads
     while (running) {
         std::cout << "Running" << std::endl;
@@ -268,6 +362,7 @@ void Server::start(){
         if (s_shutdown) {
             std::cout << "Shutting down server\n";
             running = false;
+            disconnect();
             break;
         }
 
@@ -279,23 +374,21 @@ void Server::start(){
         } 
 
         if (threads.size() >= MAX_CLIENTS) {
-            std::cerr << "Maximum number of clients reached, closing connection" << std::endl;
+            std::cerr << "Maximum number of clients reached, closing last connection" << std::endl;
             close(client_socket);
-            continue;
+            continue;;
         }
         
         // Create a new thread to handle the client
-        threads.push_back(std::thread(&Server::handle_client, this, client_socket, client_address, ref(active_clients)));
+        threads.push_back(std::thread(&Server::handleClient, this, client_socket, client_address, ref(active_clients)));
         
-
-        threads.push_back(std::thread(&Server::listen_user, this));
 
         //std::cout << "Main thread ID: " << std::this_thread::get_id() << std::endl;
 
         //OR detach thread after creating it
 
-        /*std::thread client_thread(handle_client, client_socket, client_address, ref(active_clients));
-        client_thread.detach();*/
+        //std::thread client_thread(&Server::handleClient, this, client_socket, client_address, ref(active_clients));
+        //client_thread.detach();
     }
 
     // Join all threads before exiting
@@ -310,11 +403,22 @@ void Server::start(){
     shutdown(server_fd, SHUT_RDWR);
 }
 
-
 void Server::stop(){
     s_shutdown = true;
 }
 
-void Server::test(){
-    std::cout << "test" << std::endl;
+void Server::disconnect(){
+    // Join all threads before exiting
+    /*for (auto& thread : threads) {
+        thread.join();
+        std::cout << "Joined thread ID: " << thread.get_id() << std::endl;
+    }*/
+
+    cout << "Closing the server" << endl;
+
+    // closing the connected socket
+    close(new_socket);
+    // closing the listening socket
+    shutdown(server_fd, SHUT_RDWR);
+    exit(0);
 }
