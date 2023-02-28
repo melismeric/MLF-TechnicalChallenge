@@ -34,7 +34,6 @@ State stringToState(string i){
 bool Client::connectToServer() {
     // Create socket
     m_socket = socket(AF_INET, SOCK_STREAM, 0);
-    cout << "Client Socket: " << m_socket << endl;
     if (m_socket == -1) {
         cerr << "Failed to create socket." << endl;
         return false;
@@ -54,8 +53,8 @@ bool Client::connectToServer() {
         cerr << "Connection failed." << endl;
         return false;
     } else {
-        string m = to_string(id) + " connect ";
-        send(m_socket, m.c_str(), m.length(), 0);
+        string t = to_string(id) + " connect ";
+        send(m_socket, t.c_str(), t.length(), 0);
     }
     return true;
 }
@@ -67,7 +66,10 @@ void Client::disconnect(){
 
 void Client::changeStateRequest(bool err){
     string t = to_string(id) + " state_change";
-    if (err) t = to_string(id) + " state_error";
+
+    if(err){
+        t = to_string(id) + " state_error";
+    } 
     send(m_socket, t.c_str(), t.length(), 0);
 }
 
@@ -105,7 +107,6 @@ void Client::receiveMessage() {
             }
         }else {
             cout << "Disconnected from server" << endl;
-            //disconnect();
             break;
         }
         

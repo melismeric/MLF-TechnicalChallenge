@@ -27,15 +27,17 @@ Client* CreateClientIfNotExist(vector<Client*>& objects, int id, string address,
                 
     if (c != nullptr) {
         if (!c->connectToServer()) {
-            return nullptr; // todo error
+            return nullptr; 
         }
+        thread receive_thread(&Client::receiveMessage, c);
+        receive_thread.detach();
         return c;
     }
     else {
         cout << "Client Create with id: " << id << endl;
         Client *cl = new Client(id, address, port);
         if (!cl->connectToServer()) {
-            return nullptr; // todo error
+            return nullptr; 
         } else {
             objects.push_back(cl);
             //each client listens to the server using a thread
@@ -56,7 +58,7 @@ int main() {
     int port = 8080;
     
     cout << "<id> <request> OR simulate OR quit" << endl;
-    cout << "Requests can be: connect, state_change, disconnect, state_error" << endl;
+    cout << "Requests can be: connect, state_change, state_error" << endl;
 
     //clientList
     vector<Client*> clients;
@@ -97,22 +99,26 @@ int main() {
         } else if (isdigit(message[0])) { // device trigger
             int inputId = stoi(words[0]);
 
-            if (words[1] == "disconnect") {
-                Client *c = GetClientById(clients, inputId);
-                if(c != nullptr){
-                    c->disconnect();
-                }
-            } else if (words[1] == "connect"){
+            if (words[1] == "connect"){
                 Client* c = CreateClientIfNotExist(clients, inputId, address, port);
-                cout << "connect" << endl;
+
             } else if (words[1] == "state_change"){
-                Client* c = CreateClientIfNotExist(clients, inputId, address, port);
-                cout << "state_change" << endl;
-                c->changeStateRequest(false);
+                
+                Client* c = GetClientById(clients, inputId);
+                if(c != nullptr){
+                    c->changeStateRequest(false);
+                } else {
+                    cout << "Device is not recognized please use 'connect' command." << endl;
+                }
+                
+
             } else if (words[1] == "state_error"){
-                Client* c = CreateClientIfNotExist(clients, inputId, address, port);
-                cout << "state_change_errorr" << endl;
-                c->changeStateRequest(true);
+                Client* c = GetClientById(clients, inputId);
+                if(c != nullptr){
+                    c->changeStateRequest(true);
+                }  else {
+                    cout << "Device is not recognized please use 'connect' command." << endl;
+                }
             }
         
         } else {

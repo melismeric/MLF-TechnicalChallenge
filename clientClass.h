@@ -17,8 +17,6 @@ enum Status {SUCCESS, FAIL};
 class Client {
 public:
     int id;
-    int getSocket() {return m_socket;}
-
     Client(int socket, int id) : m_socket(socket), id(id) {}
     Client(int id, string address, int port) : id(id), m_address(address), m_port(port) {}
     //Client(int sock, int id) : m_socket(sock), id(id) {}
@@ -31,6 +29,8 @@ public:
     void disconnect();
     void receiveMessage();
     void stateNotice();
+
+    int getSocket() {return m_socket;}
 
 private:
     int m_socket;

@@ -98,7 +98,7 @@ string stateToString(State state){
 void Server::listActiveClients(){
     cout << ">> Listing active clients: " << endl;
     for (auto& c : active_clients) {
-        cout << "Id: " << c->id << " State: " << stateToString(c->getState()) << endl;
+        cout << "Id: " << c->id << " State: " << stateToString(c->getState()) << " Socket:" << c->getSocket() << endl;
     }
 }
 
@@ -113,6 +113,7 @@ void Server::listenUserInput(){
         istringstream iss(input);
         vector<string> words;
         string word;
+
         // putting input words into a list to seperate them
         while (iss >> word) {        
             words.push_back(word);
@@ -243,8 +244,6 @@ void Server::handleClientInput(string cmd, int socket, sockaddr_in client_addres
 void Server::handleClient(int client_socket, sockaddr_in client_address, vector<Client*>& active_clients) {
     // add new client to the active clients list
     // Create a new client object and add it to the list of clients
-    
-    cout << "New device connecting: "<< endl;
 
     // handle the client request here
     char buffer[BUFFER_SIZE] = {0};
@@ -261,11 +260,12 @@ void Server::handleClient(int client_socket, sockaddr_in client_address, vector<
         int message_size = read(client_socket, buffer, sizeof(buffer));
 
         if (message_size <= 0) {
-        
-            cout << "Device disconnecting: "<< inet_ntoa(client_address.sin_addr) << ":" << ntohs(client_address.sin_port) << endl;
             Client *c = GetClientBySocket(active_clients, client_socket);
-            changeState(c->id, true);
-            removeClientUsingSocket(active_clients, client_socket);
+            if (c != nullptr) {
+                cout << "Device " + to_string(c->id) + " disconnecting: "<< inet_ntoa(client_address.sin_addr) << ":" << ntohs(client_address.sin_port) << endl;
+                changeState(c->id, true);
+                removeClientUsingSocket(active_clients, client_socket);
+            }
             break;
         } 
         
@@ -283,7 +283,7 @@ void Server::changeState(int id, bool error){
     Client *c = GetClientById(active_clients, id);
     if (c != nullptr){
         if (error) {
-        cout << " state changing to error" << endl;
+        cout << "State changing to error" << endl;
         saveState(id,error, ERROR); // status should be fail
         removeClientUsingSocket(active_clients, c->getSocket());
         } else if (c->getState() == 0) {
@@ -315,7 +315,7 @@ void Server::saveState(int id, int status, State state){
     const int length = s.length();
     char* cmd = new char[length + 1];
     strcpy(cmd, s.c_str());
-
+   
     write(c->getSocket(), cmd, strlen(cmd));   
     delete[] cmd;
 }
