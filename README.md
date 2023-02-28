@@ -27,8 +27,10 @@
         - client <id> <request>
 	if request == null
 		creates client if not exist
-   Else if request == trigger // DEVICE TRIGGER
-		send message to server!! // TODO
+   	Else if request == trigger // DEVICE TRIGGER
+		send request to server 
+	Else if request == disconnect // DEVICE TRIGGER
+		Client Disconnects
 
         - Simulate
         - QuiT
@@ -54,6 +56,8 @@
                 		get notice
 			else if request == status_change
 				send command to client
+			else if request == status_error
+				send command to client to change the status to error
 
         - List clients
         - Quit // todo
