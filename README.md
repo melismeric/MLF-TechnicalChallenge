@@ -28,7 +28,7 @@
 
 ### THREAD 1: 
 	User inputs to test: (simulating device trigger with user input)
-        - client <id> <request>
+        - <id> <request>
 	if request == connect
 		creates client if not exist
    	Else if request == state_change
@@ -41,7 +41,7 @@
 
 ### THREAD 2: 
 	Server Inputs:
-	- client <id> <request>
+	- <id> <request>
 		if request == state_check
 			send state notice to server
 		else if request == state_change
