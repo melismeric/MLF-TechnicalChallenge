@@ -57,7 +57,7 @@ IDLE -> ONBOARDING -> ENGAGING -> OFFBOARDING -> IDLE
  |          |             |            |          | 
                         ERROR 
 
-Server deals with the device states, when a device is triggered (either by server or client) it changes the device state and sends it to device class.
+Server deals with the device states, when a device is triggered (either by server or client) it changes the device state saves it and sends it to device class.
 
 ### THREAD 1: 
 	User inputs to simulate:
@@ -75,6 +75,9 @@ Server deals with the device states, when a device is triggered (either by serve
 			send command to client
 			get notice
 		else if request == status_change
+		        change state
+		        save state
+		        <id> <status> <state>
 			send command to client
 		else if request == status_error
 			send command to client to change the status to error & client disconnects
@@ -84,8 +87,11 @@ Server deals with the device states, when a device is triggered (either by serve
 ### THREAD 2+: 
 	Client Messages:
 		- client <id> state_change Device Trigger
-			send state_change command to client
-		- <id> <state> // State Notice 
+		        change state
+		        save state
+		        <id> <status> <state>
+			send command to client
+		- <id> <state> // State Notice coming from client
 			print out state
 
 
