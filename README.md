@@ -13,14 +13,14 @@
 
 ## Server commands to Client:
 
-* Status Change
-* Status Check
+* State Change
+* State Check
 * Error Case
 
 ## Client commands to Server:
 
-* Status Notice
-* Device Trigger/ Status Change Request (which will cause status change after getting command from the server)
+* State Notice
+* Device Trigger/ State Change Request (sends state change request to server and if it gets the success message from server saves the current state)
 * Error Case
 
 
