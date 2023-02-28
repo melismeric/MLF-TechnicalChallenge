@@ -9,9 +9,9 @@
 ### Build&Run server code: 
 	 g++ server.cpp clientClass.cpp serverClass.cpp -o server -std=c++11 -pthread
 	 ./server
--
+
 This is a multithreaded socket programming approach to the problem.
--
+
 
 ## Server commands to Client:
 
