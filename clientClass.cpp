@@ -54,7 +54,7 @@ bool Client::connectToServer() {
         cerr << "Connection failed." << endl;
         return false;
     } else {
-        string m = to_string(id) + " connect";
+        string m = to_string(id) + " connect ";
         send(m_socket, m.c_str(), m.length(), 0);
     }
     return true;
@@ -62,7 +62,7 @@ bool Client::connectToServer() {
 
 void Client::disconnect(){
     close(m_socket);
-    cout << "Device" + to_string(id) + "disconnected" << endl;
+    cout << "Device " + to_string(id) + " disconnected." << endl;
 }
 
 void Client::changeStateRequest(bool err){
@@ -105,7 +105,7 @@ void Client::receiveMessage() {
             }
         }else {
             cout << "Disconnected from server" << endl;
-            disconnect();
+            //disconnect();
             break;
         }
         

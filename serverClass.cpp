@@ -53,7 +53,7 @@ Client* AddClientIfNotExist(int id, int socket ,vector<Client*>& objects){
     if (c != nullptr) {
         return c;
     } else {
-        cout << "New client " + to_string(id) + " added to list" << endl;
+        cout << "New device " + to_string(id) + " added to active list." << endl;
         // if client does not exist 
         Client* client = new Client(socket, id);
         objects.push_back(client);
@@ -196,6 +196,7 @@ void Server::handleClientInput(string cmd, int socket, sockaddr_in client_addres
     while (iss >> word) {        
         words.push_back(word);
     }
+    cout << "Received message from device:" << cmd << endl;
   
     //<id> <req> OR <id> <status> <state>
     if (is_number(words[0])) {
@@ -218,7 +219,14 @@ void Server::handleClientInput(string cmd, int socket, sockaddr_in client_addres
             } else if (words[1] == "state_change") {
                 int inputId = stoi(words[0]);
                 cout << words[0] << " requires state change.";
-                changeState(inputId, false);
+
+                Client* c = GetClientById(active_clients, inputId);
+                if(c != nullptr){
+                    changeState(inputId, false);
+                } else {
+                    cout << "Error: Client does not exits!" << endl;
+                }
+
             } else if (words[1] == "state_error") {
                 int inputId = stoi(words[0]);
                 cout << words[0] << " requires state change with error.";
@@ -236,7 +244,7 @@ void Server::handleClient(int client_socket, sockaddr_in client_address, vector<
     // add new client to the active clients list
     // Create a new client object and add it to the list of clients
     
-    cout << "New device connected: "<< endl;
+    cout << "New device connecting: "<< endl;
 
     // handle the client request here
     char buffer[BUFFER_SIZE] = {0};
@@ -245,7 +253,7 @@ void Server::handleClient(int client_socket, sockaddr_in client_address, vector<
         
         // Check for shutdown command from user input
         if (s_shutdown) {
-            std::cout << "Inside handle_client Shutting down server\n";
+            std::cout << "Shutting down server\n";
             running = false;
             disconnect();
             break;
@@ -253,8 +261,10 @@ void Server::handleClient(int client_socket, sockaddr_in client_address, vector<
         int message_size = read(client_socket, buffer, sizeof(buffer));
 
         if (message_size <= 0) {
-            //client disconnected -> TODO: state_change?
+        
             cout << "Device disconnecting: "<< inet_ntoa(client_address.sin_addr) << ":" << ntohs(client_address.sin_port) << endl;
+            Client *c = GetClientBySocket(active_clients, client_socket);
+            changeState(c->id, true);
             removeClientUsingSocket(active_clients, client_socket);
             break;
         } 
@@ -271,25 +281,29 @@ void Server::handleClient(int client_socket, sockaddr_in client_address, vector<
 
 void Server::changeState(int id, bool error){
     Client *c = GetClientById(active_clients, id);
-  
-    if (error) {
+    if (c != nullptr){
+        if (error) {
         cout << " state changing to error" << endl;
         saveState(id,error, ERROR); // status should be fail
         removeClientUsingSocket(active_clients, c->getSocket());
-    } else if (c->getState() == 0) {
-        cout << "Idle state changing to onboarding" << endl;
-        saveState(id,error, ONBOARDING);
-    } else if (c->getState()  == 1) {
-        cout << "Onboarding state changing to engaging" << endl;
-        saveState(id,error, ENGAGING);
-    } else if (c->getState() == 2) {
-        cout << "Engaging state changing to offboarding" << endl;
-        saveState(id,error, OFFBOARDING);
-    } else if (c->getState() == 3) {
-        cout << "Offboarding state changing to idle" << endl;
-        saveState(id,error, IDLE);
-        removeClientUsingSocket(active_clients, c->getSocket());
-    }  
+        } else if (c->getState() == 0) {
+            cout << "Idle state changing to onboarding" << endl;
+            saveState(id,error, ONBOARDING);
+        } else if (c->getState()  == 1) {
+            cout << "Onboarding state changing to engaging" << endl;
+            saveState(id,error, ENGAGING);
+        } else if (c->getState() == 2) {
+            cout << "Engaging state changing to offboarding" << endl;
+            saveState(id,error, OFFBOARDING);
+        } else if (c->getState() == 3) {
+            cout << "Offboarding state changing to idle" << endl;
+            saveState(id,error, IDLE);
+            removeClientUsingSocket(active_clients, c->getSocket());
+        }  
+    } else {
+        cout << "Device is not in the Active List. State Change unsuccessful." << endl;
+    }
+
 }
 
 void Server::saveState(int id, int status, State state){
@@ -301,7 +315,6 @@ void Server::saveState(int id, int status, State state){
     const int length = s.length();
     char* cmd = new char[length + 1];
     strcpy(cmd, s.c_str());
-    
 
     write(c->getSocket(), cmd, strlen(cmd));   
     delete[] cmd;
@@ -356,8 +369,6 @@ void Server::start(){
     
     // accept incoming client connections and handle them in separate threads
     while (running) {
-        std::cout << "Running" << std::endl;
-
         // Check for shutdown command from user input
         if (s_shutdown) {
             std::cout << "Shutting down server\n";

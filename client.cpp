@@ -26,7 +26,9 @@ Client* CreateClientIfNotExist(vector<Client*>& objects, int id, string address,
     Client* c = GetClientById(objects, id);
                 
     if (c != nullptr) {
-        //c->deviceTrigger();
+        if (!c->connectToServer()) {
+            return nullptr; // todo error
+        }
         return c;
     }
     else {
