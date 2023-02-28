@@ -1,23 +1,26 @@
 # MLF-TechnicalChallenge
 
-### Run client code: 
+### Build&Run client code: 
 	g++ client.cpp clientClass.cpp -o client -std=c++11 -pthread
+	./client
   
   
   
-### Run server code: 
+### Build&Run server code: 
 	 g++ server.cpp clientClass.cpp serverClass.cpp -o server -std=c++11 -pthread
+	 ./server
 
 
 ## Server commands to Client:
 
 * Status Change
 * Status Check
+* Error Case
 
 ## Client commands to Server:
 
 * Status Notice
-* Device Trigger (which will cause status change after getting command from the server)
+* Device Trigger/ Status Change Request (which will cause status change after getting command from the server)
 
 
 ## CLIENT Listening to user inputs and server messages:
@@ -25,9 +28,9 @@
 ### THREAD 1: 
 	User inputs to test:
         - client <id> <request>
-	if request == null
+	if request == connect
 		creates client if not exist
-   	Else if request == trigger // DEVICE TRIGGER
+   	Else if request == state_change // DEVICE TRIGGER
 		send request to server 
 	Else if request == disconnect // DEVICE TRIGGER
 		Client Disconnects
@@ -45,7 +48,15 @@
 				
 
 
-### SERVER Listening to each client (thread for each client) & user input
+### SERVER 
+Listening to each client (thread for each client) & user input
+
+### Handling State Machine:
+IDLE -> ONBOARDING -> ENGAGING -> OFFBOARDING -> IDLE
+ |          |             |            |          | 
+                        ERROR 
+
+Server deals with the device states, when a device is triggered (either by server or client) it changes the device state and sends it to device class.
 
 ### THREAD 1: 
 	User inputs to test:
@@ -71,8 +82,6 @@
 
 
 
-### Device State Machine:
-IDLE, ONBOARDING, ENGAGING, OFFBOARDING, ERROR
 
 TODO:
 Test cases
