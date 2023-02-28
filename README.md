@@ -71,7 +71,9 @@ Server deals with the device states, when a device is triggered (either by serve
 				send command to client to change the status to error
 
         - List clients
-        - Quit // todo
+	- Random state_change
+	- Random state_check
+        - Quit 
 
 ### THREAD 2+: 
 	Client Messages:
