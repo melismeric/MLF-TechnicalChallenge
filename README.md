@@ -21,30 +21,31 @@
 
 * Status Notice
 * Device Trigger/ Status Change Request (which will cause status change after getting command from the server)
+* Error Case
 
 
 ## CLIENT Listening to user inputs and server messages:
 
 ### THREAD 1: 
-	User inputs to test:
+	User inputs to test: (simulating device trigger with user input)
         - client <id> <request>
 	if request == connect
 		creates client if not exist
-   	Else if request == state_change // DEVICE TRIGGER
+   	Else if request == state_change
 		send request to server 
-	Else if request == disconnect // DEVICE TRIGGER
+	Else if request == state_error 
 		Client Disconnects
 
-        - Simulate
-        - QuiT
+        - simulate
+        - quit
 
-### THREAD 2:
+### THREAD 2: 
 	Server Inputs:
-		- client <id> <request>
-			if request == status_check
-				send statusNotice() to server
-			else if request == status_change
-				change status of the client
+	- client <id> <request>
+		if request == state_check
+			send state notice to server
+		else if request == state_change
+			save new state of the client
 				
 
 
@@ -76,7 +77,7 @@ Server deals with the device states, when a device is triggered (either by serve
 		else if request == status_change
 			send command to client
 		else if request == status_error
-			send command to client to change the status to error
+			send command to client to change the status to error & client disconnects
 
 
 
